@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "claudecode-toaster",
+  "displayName": "ClaudeCodeToaster",
+  "version": "1.0.4",
+  "description": "bypass permissions 自动执行模式专属的任务完成音效提醒：任务成功 / 失败 / 中断时自动播放可自定义提示音，无需紧盯终端。",
+  "author": {
+    "name": "ClaudeCodeToaster"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "hooks",
+    "sound",
+    "notification",
+    "bypass-permissions"
+  ],
+  "commands": [
+    "./commands/sound.md"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "name": "claudecode-toaster",
+  "version": "1.0.4",
+  "description": "Claude Code plugin: customizable sound alerts for task success / failure / abort, designed for bypass-permissions auto mode. Zero runtime dependencies.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc && node scripts/generate-sounds.mjs",
+    "build:js": "tsc",
+    "sounds": "node scripts/generate-sounds.mjs",
+    "typecheck": "tsc --noEmit",
+    "validate": "claude plugin validate ."
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "claude-code",
+    "claude-code-plugin",
+    "sound",
+    "notification",
+    "hooks"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "^5.6.3"
+  },
+  "files": [
+    "dist",
+    "assets",
+    "hooks",
+    "commands",
+    ".claude-plugin",
+    "scripts",
+    "README.md"
+  ]
+}

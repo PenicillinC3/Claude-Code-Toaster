@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "claudecode-toaster",
+  "owner": {
+    "name": "ClaudeCodeToaster"
+  },
+  "description": "ClaudeCodeToaster 本地开发 marketplace（单插件仓库，插件即仓库根目录）。",
+  "plugins": [
+    {
+      "name": "claudecode-toaster",
+      "source": "./",
+      "description": "bypass permissions 自动执行模式专属的任务完成音效提醒：任务成功 / 失败 / 中断时自动播放可自定义提示音，无需紧盯终端。"
+    }
+  ]
+}

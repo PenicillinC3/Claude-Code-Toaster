@@ -1,0 +1,10 @@
+node_modules/
+*.log
+.DS_Store
+
+# 构建产物 dist/ 必须随仓库提交：Claude Code 安装插件时不会执行 npm run build，
+# 没有 dist/ 的克隆会让所有钩子报 "Cannot find module"。
+# 修改 src/ 或 scripts/ 后请执行 npm run build，并把更新后的 dist/ 一并提交。
+
+# 用户本地测试配置
+.claude/
