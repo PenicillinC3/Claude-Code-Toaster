@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "claudecode-toaster",
   "displayName": "ClaudeCodeToaster",
-  "version": "1.0.4",
-  "description": "bypass permissions 自动执行模式专属的任务完成音效提醒：任务成功 / 失败 / 中断时自动播放可自定义提示音，无需紧盯终端。",
+  "version": "1.1.1",
+  "description": "Claude Code 音效提醒：bypass 自动执行模式下任务成功 / 失败 / 中断时播放提示音；普通模式下权限请求 / 闲置等待也会响一声——挂机也不怕错过。音效、音量、预设全部可自定义。",
   "author": {
     "name": "ClaudeCodeToaster"
   },

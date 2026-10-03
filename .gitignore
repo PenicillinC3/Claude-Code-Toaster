@@ -7,5 +7,11 @@ CHANGELOG.md
 # 没有 dist/ 的克隆会让所有钩子报 "Cannot find module"。
 # 修改 src/ 或 scripts/ 后请执行 npm run build，并把更新后的 dist/ 一并提交。
 
+# 发布压缩包：本地打包产物统一放 release/，不随仓库提交
+release/
+
+# 铃声母带：simple/success 真实录音的原始 mp3（裁切产物已提交在 assets/），母带本地保留
+toaster_sound/
+
 # 用户本地测试配置
 .claude/

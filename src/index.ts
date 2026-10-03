@@ -35,8 +35,8 @@ import { dirname, extname, isAbsolute, join, resolve } from 'path';
 // 一、类型与常量
 // ============================================================================
 
-/** 任务结束状态（对应三类音效） */
-type SoundStatus = 'success' | 'fail' | 'abort';
+/** 音效状态：任务结束三类 + 权限请求 / 闲置提醒（普通模式挂机提示） */
+type SoundStatus = 'success' | 'fail' | 'abort' | 'notify';
 
 /** 内置预设音效包 */
 type PresetName = 'simple' | 'crisp' | 'tech';
@@ -59,6 +59,10 @@ interface ToasterConfig {
   abortSound: string;
   /** 中断音效音量 0-100 */
   abortVolume: number;
+  /** 权限请求 / 闲置提醒音效文件路径（空字符串 = 使用内置预设） */
+  notifySound: string;
+  /** 权限请求 / 闲置提醒音效音量 0-100 */
+  notifyVolume: number;
   /** 音效最大播放时长（秒），防止音频过长 */
   maxDuration: number;
   /** 内置预设音效包名 */
@@ -76,6 +80,8 @@ interface HookInput {
   stop_hook_active?: boolean;
   /** PostToolUseFailure 事件：失败是否由用户中断造成 */
   is_interrupt?: boolean;
+  /** Notification 事件：通知类型（如 permission_prompt / idle_prompt）。字段名未经官方文档确认，仅作 matcher 之外的兜底 */
+  notification_type?: string;
   /** StopFailure 事件：API 错误类型 */
   error?: string;
   /** 会话记录 JSONL 路径，用于判定任务最终是否以工具失败收尾 */
@@ -83,7 +89,7 @@ interface HookInput {
   [key: string]: unknown;
 }
 
-const STATUSES: SoundStatus[] = ['success', 'fail', 'abort'];
+const STATUSES: SoundStatus[] = ['success', 'fail', 'abort', 'notify'];
 const PRESETS: PresetName[] = ['simple', 'crisp', 'tech'];
 
 /** 同一任务结束事件的防抖窗口（毫秒），窗口内只播放一次 */
@@ -99,6 +105,8 @@ const DEFAULT_CONFIG: ToasterConfig = {
   failVolume: 85,
   abortSound: '',
   abortVolume: 70,
+  notifySound: '',
+  notifyVolume: 80,
   maxDuration: 4,
   preset: 'simple',
 };
@@ -145,9 +153,11 @@ function sanitizeConfig(raw: Record<string, unknown> | null): ToasterConfig {
   if (typeof raw.successSound === 'string') cfg.successSound = raw.successSound;
   if (typeof raw.failSound === 'string') cfg.failSound = raw.failSound;
   if (typeof raw.abortSound === 'string') cfg.abortSound = raw.abortSound;
+  if (typeof raw.notifySound === 'string') cfg.notifySound = raw.notifySound;
   cfg.successVolume = clampInt(raw.successVolume, 0, 100, DEFAULT_CONFIG.successVolume);
   cfg.failVolume = clampInt(raw.failVolume, 0, 100, DEFAULT_CONFIG.failVolume);
   cfg.abortVolume = clampInt(raw.abortVolume, 0, 100, DEFAULT_CONFIG.abortVolume);
+  cfg.notifyVolume = clampInt(raw.notifyVolume, 0, 100, DEFAULT_CONFIG.notifyVolume);
   cfg.maxDuration = clampInt(raw.maxDuration, 1, 30, DEFAULT_CONFIG.maxDuration);
   if (typeof raw.preset === 'string' && (PRESETS as string[]).includes(raw.preset)) {
     cfg.preset = raw.preset as PresetName;
@@ -694,10 +704,14 @@ function transcriptEndedWithError(transcriptPath: string | undefined): boolean {
  *   - Stop              主代理完成响应时触发；用户中断时不触发，API 错误由 StopFailure 替代
  *   - StopFailure       turn 因 API 错误（限流 / 鉴权 / 计费 / 服务端等）结束
  *   - PostToolUseFailure 工具调用失败；input.is_interrupt=true 表示由用户中断造成
+ *   - Notification      Claude Code 发出通知时触发（hooks.json 用 matcher 过滤并作为 detail 传入）：
+ *                       permission_prompt = 权限请求；idle_prompt = 闲置 60s+ 等待输入。
+ *                       仅这两类触发 notify 音；auth_success / elicitation_dialog 等不发声。
  *
+ * @param detail hooks.json 传入的 matcher 值（Notification 事件用于识别通知类型）
  * @returns 音效状态；null 表示该事件不应发声
  */
-function mapHookEvent(event: string, input: HookInput): SoundStatus | null {
+function mapHookEvent(event: string, input: HookInput, detail?: string): SoundStatus | null {
   switch (event) {
     case 'Stop':
       // stop_hook_active=true 表示因其他 stop hook 阻塞而继续运行，并非真正结束
@@ -709,6 +723,12 @@ function mapHookEvent(event: string, input: HookInput): SoundStatus | null {
       // 仅在用户主动中断工具执行时播放中断音；普通工具失败留给 Stop 统一判定，
       // 避免每个工具步骤都响（只在任务结束时响一次）。
       return input.is_interrupt === true ? 'abort' : null;
+    case 'Notification': {
+      // detail 来自 hooks.json 的 matcher（官方机制）；stdin 的 notification_type 字段
+      // 未经官方文档确认，仅作兜底。两者都识别不出时保持静默，避免 auth_success 等误响。
+      const type = detail || input.notification_type || '';
+      return type === 'permission_prompt' || type === 'idle_prompt' ? 'notify' : null;
+    }
     default:
       return null;
   }
@@ -751,7 +771,7 @@ function dbg(msg: string): void {
 }
 
 /** hook 模式入口：读取事件 JSON → 判定 → 播放，全程不抛出 */
-async function runHook(eventArg: string | undefined): Promise<void> {
+async function runHook(eventArg: string | undefined, detailArg?: string): Promise<void> {
   try {
     const input = (JSON.parse(readStdin() || '{}') as HookInput) ?? {};
     const event = eventArg || input.hook_event_name || '';
@@ -764,14 +784,15 @@ async function runHook(eventArg: string | undefined): Promise<void> {
       return;
     }
 
-    const status = mapHookEvent(event, input);
+    const status = mapHookEvent(event, input, detailArg);
     if (!status) {
       dbg('skipped: event maps to no sound');
       return;
     }
 
-    // bypassOnly：非自动批准模式静默；事件未携带 permission_mode 时 fail-open
-    if (cfg.bypassOnly && input.permission_mode !== undefined && !isAutoApproveMode(input.permission_mode)) {
+    // bypassOnly：非自动批准模式静默；事件未携带 permission_mode 时 fail-open。
+    // notify（权限请求 / 闲置提醒）只出现在需要用户介入的普通模式，不受该开关限制。
+    if (status !== 'notify' && cfg.bypassOnly && input.permission_mode !== undefined && !isAutoApproveMode(input.permission_mode)) {
       dbg(`skipped: permission_mode=${input.permission_mode} is not an auto-approve mode`);
       return;
     }
@@ -797,10 +818,11 @@ async function runHook(eventArg: string | undefined): Promise<void> {
 // 六、斜杠命令 CLI（/claudecode-toaster:sound ...）
 // ============================================================================
 
-const HELP_TEXT = `ClaudeCodeToaster - 任务完成音效提醒
+const HELP_TEXT = `ClaudeCodeToaster - 任务完成 / 权限请求音效提醒
 
 用法：
-  node index.js sound test [success|fail|abort]   测试音效（不指定则依次播放三段）
+  node index.js sound test [success|fail|abort|notify]
+                                                  测试音效（不指定则依次播放四段）
   node index.js sound toggle                      开启 / 关闭音效总开关
   node index.js sound bypass-only                 切换「仅 bypass 模式提醒」
   node index.js sound set <状态> <音频文件路径> [--project]
@@ -809,14 +831,14 @@ const HELP_TEXT = `ClaudeCodeToaster - 任务完成音效提醒
                                                   设置指定状态音量
   node index.js sound preset <simple|crisp|tech> [--project]
                                                   切换内置预设音效包
-  node index.js sound reset <success|fail|abort|all> [--project]
+  node index.js sound reset <success|fail|abort|notify|all> [--project]
                                                   恢复默认（默认操作用户级配置）
   node index.js sound install-shortcut           在 ~/.claude/commands 安装原生 /sound 短命令
   node index.js sound uninstall-shortcut         移除原生 /sound 短命令
   node index.js sound status                      查看当前生效配置
   node index.js sound help                        显示本帮助
 
-状态取值：success | fail | abort
+状态取值：success | fail | abort | notify（notify = 普通模式权限请求 / 闲置提醒）
 配置级别：默认写入用户级（~/.claude/claudecode-toaster/config.json），
           加 --project 写入项目级（<项目>/.claude/claudecode-toaster.json）。`;
 
@@ -901,7 +923,7 @@ function runSoundCommand(argv: string[]): void {
     const body = [
       '---',
       'description: ClaudeCodeToaster 音效提醒控制：测试、开关、bypassOnly、自定义音效、音量、预设、重置',
-      'argument-hint: "[test [success|fail|abort] | toggle | bypass-only | set <success|fail|abort> <路径> | volume <success|fail|abort> <0-100> | preset <simple|crisp|tech> | reset <success|fail|abort|all> | status]"',
+      'argument-hint: "[test [success|fail|abort|notify] | toggle | bypass-only | set <success|fail|abort|notify> <路径> | volume <success|fail|abort|notify> <0-100> | preset <simple|crisp|tech> | reset <success|fail|abort|notify|all> | status]"',
       'disable-model-invocation: true',
       'allowed-tools: Bash',
       '---',
@@ -1049,7 +1071,7 @@ function main(): void {
   const [mode, ...rest] = process.argv.slice(2);
 
   if (mode === 'hook') {
-    void runHook(rest[0]);
+    void runHook(rest[0], rest[1]);
     return;
   }
   if (mode === 'sound') {

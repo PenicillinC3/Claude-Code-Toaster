@@ -19,9 +19,9 @@ assets/sounds/<preset>/<status>.wav
 其中：
 
 - `<preset>` 为预设包名：`simple`（简洁，默认）、`crisp`（清脆）、`tech`（科技风）
-- `<status>` 为任务状态：`success`、`fail`、`abort`
+- `<status>` 为音效状态：`success`、`fail`、`abort`、`notify`（权限请求 / 闲置提醒）
 
-共 3 × 3 = 9 个 WAV 文件（44.1kHz / 单声道 / 16-bit PCM）。
+共 3 × 4 = 12 个 WAV 文件（44.1kHz / 单声道 / 16-bit PCM）。
 
 其中 `simple/success.wav` 为**真实烤面包机铃声录音**（外部素材，来源与署名要求见仓库根 README「内置预设包」一节），
 以源文件形式随仓库提交，构建时只复制到 `dist/`、不重新合成。其余 8 个为脚本合成。
