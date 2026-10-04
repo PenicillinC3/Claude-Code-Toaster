@@ -98,7 +98,7 @@ const DEBOUNCE_MS = 3000;
 /** 出厂默认配置 */
 const DEFAULT_CONFIG: ToasterConfig = {
   enable: true,
-  bypassOnly: true,
+  bypassOnly: false,
   successSound: '',
   successVolume: 80,
   failSound: '',

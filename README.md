@@ -1,9 +1,9 @@
 # ClaudeCodeToaster 🍞🔔
 
 Claude Code 终端插件：**任务完成 / 权限请求音效提醒**。
-bypass 自动执行模式下任务结束（成功 / 失败 / 中断）时自动播放对应提示音；
-普通模式下 Claude 请求权限、或闲置 60 秒等你输入时也会响一声——挂机也不怕错过。
-四类音效、音量、预设包全部可自定义，让你不用紧盯终端。
+任务结束（成功 / 失败 / 中断）时自动播放对应提示音；
+Claude 请求权限、或闲置 60 秒等你输入时也会响一声——挂机也不怕错过。
+四类音效、音量、预设包全部可自定义，默认所有权限模式生效。
 
 - 零运行时依赖：只用 Node.js 原生模块 + 系统自带播放器，**不安装任何第三方音频库**
 - 跨平台：macOS / Windows / Linux，全部调用系统原生能力
@@ -27,10 +27,10 @@ Claude Code 官方**没有** `task:complete` / `task:error` / `task:abort` 这�
 
 其他关键行为：
 
-- **默认仅在自动批准模式响**：钩子输入的 `permission_mode` 为 `bypassPermissions`
-  （`--dangerously-skip-permissions`）或 `dontAsk` 时才播放；`default` / `plan` / `acceptEdits` / `auto` 模式静默。
-  用 `/sound bypass-only` 可关闭该限制，做到所有模式都提醒。
-  **notify（权限请求 / 闲置提醒）不受此限制**——它正是为普通模式设计的，只要总开关开着就会响。
+- **默认所有权限模式都提醒**：任务结束音效（success / fail / abort）在 `default` / `plan` /
+  `acceptEdits` / `auto` / `bypassPermissions`（`--dangerously-skip-permissions`）/ `dontAsk` 下均播放。
+  用 `/sound bypass-only` 可开启「仅自动批准模式提醒」——开启后只有 `bypassPermissions` / `dontAsk` 播放。
+  **notify（权限请求 / 闲置提醒）不受该开关限制**——它正是为普通模式设计的，只要总开关开着就会响。
 - **一个任务只响一次**：`Stop` 是"每轮任务结束"事件（一轮 = 你发一次指令到 Claude 交还控制权），
   不会在每个工具调用后响；另有 **3 秒防抖**（同一 session + 状态 3 秒内只放一次）兜底。
 - 所有钩子均配置为 `"async": true`，Claude 不等音效播完即可继续。
@@ -100,7 +100,7 @@ npm run build        # tsc 编译 + 生成内置音效（11 个合成 + 1 个真
 在**启动 Claude Code 时**用 `--plugin-dir` 加载（官方本地开发方式，可重复 `--plugin-dir` 加载多个）：
 
 ```powershell
-# 普通模式加载（此时默认不会响，因为默认 bypassOnly=true）
+# 普通模式加载（默认也会响；开启 bypass-only 后普通模式才静默）
 claude --plugin-dir D:\_claude-code-toaster
 
 # 推荐：bypass permissions 自动执行模式 + 本插件（核心使用场景）
@@ -188,7 +188,7 @@ node dist/index.js sound status
 | 配置项 | 默认值 | 说明 |
 |---|---|---|
 | `enable` | `true` | 音效提醒总开关 |
-| `bypassOnly` | `true` | 仅 bypass / 自动批准模式下生效；关闭后所有权限模式都提醒 |
+| `bypassOnly` | `false` | 默认所有权限模式都提醒；开启后仅 bypass / 自动批准模式下提醒 |
 | `successSound` | 内置预设 | 成功音效文件路径（`""` 表示用内置预设） |
 | `successVolume` | `80` | 成功音效音量 0-100 |
 | `failSound` | 内置预设 | 失败音效文件路径 |
@@ -304,7 +304,7 @@ $env:TOASTER_DEBUG='1'   # 打开判定日志（输出到 stderr，排障后删�
 [pscustomobject]@{ hook_event_name='PostToolUseFailure'; permission_mode='bypassPermissions'; session_id='t3'; cwd='D:\_claude-code-toaster'; is_interrupt=$true } |
   ConvertTo-Json -Compress | node dist\index.js hook PostToolUseFailure
 
-# 对照：default 权限模式（bypassOnly 默认开启）→ 应静默，日志显示 skipped
+# 对照：default 权限模式 + 开启 bypass-only 后 → 应静默，日志显示 skipped
 [pscustomobject]@{ hook_event_name='Stop'; permission_mode='default'; session_id='t4'; cwd='D:\_claude-code-toaster' } |
   ConvertTo-Json -Compress | node dist\index.js hook Stop
 ```
@@ -339,13 +339,14 @@ echo '{"hook_event_name":"Stop","permission_mode":"bypassPermissions","session_i
 4. **验证中断音**：先下发一个长时间运行的任务（如大目录检索、`Start-Sleep 300`、完整构建），
    在工具执行过程中按 **Esc（或 Ctrl+C）** 终止本次执行，应响 **abort**。
 
-5. **验证"仅 bypass 模式"静默**：退出后用普通模式启动：
+5. **验证普通模式（默认也提醒）**：退出后用普通模式启动：
 
    ```powershell
    claude --plugin-dir D:\_claude-code-toaster
    ```
 
-   同样的任务结束时**不应发声**。执行 `/sound bypass-only` 关闭限制后，普通模式结束也会提醒。
+   同样的任务结束时**会响 success**（默认所有权限模式都提醒）。执行 `/sound bypass-only`
+   开启「仅自动批准模式提醒」后，普通模式结束才会静默。
 
 6. **验证自定义与开关**：
 

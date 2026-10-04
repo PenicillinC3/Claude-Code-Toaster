@@ -1,7 +1,7 @@
 {
   "name": "claudecode-toaster",
-  "version": "1.1.1",
-  "description": "Claude Code plugin: customizable sound alerts for task success / failure / abort (bypass-permissions auto mode) and for permission prompts / idle waits (normal mode). Zero runtime dependencies.",
+  "version": "1.1.2",
+  "description": "Claude Code plugin: customizable sound alerts for task success / failure / abort, plus permission prompts and idle waits. Works in all permission modes. Zero runtime dependencies.",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc && node scripts/generate-sounds.mjs",
