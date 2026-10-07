@@ -2,7 +2,7 @@
 
 Claude Code 终端插件：**任务完成 / 权限请求音效提醒**。
 任务结束（成功 / 失败 / 中断）时自动播放对应提示音；
-Claude 请求权限、或闲置 60 秒等你输入时也会响一声——挂机也不怕错过。
+Claude 请求权限（被卡住等待批准）时会响一声——挂机也不怕错过。
 四类音效、音量、预设包全部可自定义，默认所有权限模式生效。
 
 - 零运行时依赖：只用 Node.js 原生模块 + 系统自带播放器，**不安装任何第三方音频库**
@@ -23,14 +23,14 @@ Claude Code 官方**没有** `task:complete` / `task:error` / `task:abort` 这�
 | **成功 success** | `Stop` | 主代理完成响应时触发；同时分析会话记录（transcript），若本轮最后一个工具结果是错误则改判 fail |
 | **失败 fail** | `StopFailure` + `Stop` 的记录分析 | API 错误（限流 / 鉴权 / 计费 / 服务端，`StopFailure`）；工具执行失败后任务收尾（`Stop` + transcript 中最后一个 `tool_result.is_error === true`） |
 | **中断 abort** | `PostToolUseFailure` | 仅当输入 `is_interrupt === true`（用户在工具执行期间按 Esc / Ctrl+C 终止）时播放；普通工具失败不响，避免每步打扰 |
-| **提醒 notify** | `Notification` | matcher = `permission_prompt`（Claude 请求权限）/ `idle_prompt`（闲置 60s+ 等待输入）；其余通知类型（`auth_success` / `elicitation_dialog` 等）不发声 |
+| **提醒 notify** | `Notification` | matcher = `permission_prompt`（Claude 请求权限、被卡住等待批准）；其余通知类型（`idle_prompt` / `auth_success` / `elicitation_dialog` 等）不发声 |
 
 其他关键行为：
 
 - **默认所有权限模式都提醒**：任务结束音效（success / fail / abort）在 `default` / `plan` /
   `acceptEdits` / `auto` / `bypassPermissions`（`--dangerously-skip-permissions`）/ `dontAsk` 下均播放。
   用 `/sound bypass-only` 可开启「仅自动批准模式提醒」——开启后只有 `bypassPermissions` / `dontAsk` 播放。
-  **notify（权限请求 / 闲置提醒）不受该开关限制**——它正是为普通模式设计的，只要总开关开着就会响。
+  **notify（权限请求）不受该开关限制**——它正是为普通模式设计的，只要总开关开着就会响。
 - **一个任务只响一次**：`Stop` 是"每轮任务结束"事件（一轮 = 你发一次指令到 Claude 交还控制权），
   不会在每个工具调用后响；另有 **3 秒防抖**（同一 session + 状态 3 秒内只放一次）兜底。
 - 所有钩子均配置为 `"async": true`，Claude 不等音效播完即可继续。
@@ -195,8 +195,8 @@ node dist/index.js sound status
 | `failVolume` | `85` | 失败音效音量 0-100 |
 | `abortSound` | 内置预设 | 中断音效文件路径 |
 | `abortVolume` | `70` | 中断音效音量 0-100 |
-| `notifySound` | 内置预设 | 权限请求 / 闲置提醒音效文件路径 |
-| `notifyVolume` | `80` | 权限请求 / 闲置提醒音效音量 0-100 |
+| `notifySound` | 内置预设 | 权限请求音效文件路径 |
+| `notifyVolume` | `80` | 权限请求音效音量 0-100 |
 | `maxDuration` | `4` | 音效最大播放时长（秒，1-30），防止音频过长 |
 | `preset` | `simple` | 内置预设包：`simple` / `crisp` / `tech` |
 
@@ -238,7 +238,7 @@ node dist/index.js sound status
 <https://www.youtube.com/watch?v=IoN9UsFh9-I>，作者声明注明出处即可免费使用；
 由 `toaster_sound/Toaster Oven Bell Ding.mp3` 裁切而来：去 1.5s 机械前导、保留完整尾音（~3.5s）、峰值归一）。
 `crisp` / `tech` 的 success 为同一烤面包机主题的合成版；
-`notify`（权限请求 / 闲置提醒）三套预设均为上行双音（提问感），与任务结束三类音效区分：
+`notify`（权限请求）三套预设均为上行双音（提问感），与任务结束三类音效区分：
 
 | 预设 | success | fail | abort | notify |
 |---|---|---|---|---|

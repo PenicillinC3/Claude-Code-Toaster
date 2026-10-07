@@ -1,5 +1,5 @@
 {
-  "description": "ClaudeCodeToaster lifecycle sound hooks: play success / fail / abort sounds when a task turn ends (bypass-permissions auto mode), and a notify sound on permission prompts / idle waits (normal mode).",
+  "description": "ClaudeCodeToaster lifecycle sound hooks: play success / fail / abort sounds when a task turn ends, and a notify sound on permission prompts (Claude blocked waiting for approval).",
   "hooks": {
     "Stop": [
       {
@@ -44,17 +44,6 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/index.js\" hook Notification permission_prompt",
-            "async": true,
-            "timeout": 20
-          }
-        ]
-      },
-      {
-        "matcher": "idle_prompt",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/index.js\" hook Notification idle_prompt",
             "async": true,
             "timeout": 20
           }

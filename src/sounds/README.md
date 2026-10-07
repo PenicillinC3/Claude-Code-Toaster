@@ -19,7 +19,7 @@ assets/sounds/<preset>/<status>.wav
 其中：
 
 - `<preset>` 为预设包名：`simple`（简洁，默认）、`crisp`（清脆）、`tech`（科技风）
-- `<status>` 为音效状态：`success`、`fail`、`abort`、`notify`（权限请求 / 闲置提醒）
+- `<status>` 为音效状态：`success`、`fail`、`abort`、`notify`（权限请求）
 
 共 3 × 4 = 12 个 WAV 文件（44.1kHz / 单声道 / 16-bit PCM）。
 

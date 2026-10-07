@@ -132,7 +132,7 @@ const PRESETS = {
     abort: render([
       { f0: 196.0, dur: 0.42, vol: 0.68, decay: 3 }, // G3 低沉长音
     ]),
-    // 权限请求 / 闲置提醒：上行双「叮」（G6 → C7），提问感，与 success 的单声叮区分
+    // 权限请求（等待批准）：上行双「叮」（G6 → C7），提问感，与 success 的单声叮区分
     notify: render([
       { f0: 1567.98, dur: 0.16, gap: 0.06, vol: 0.5, decay: 6 }, // G6
       { f0: 2093.0, dur: 0.42, vol: 0.5, decay: 5 }, // C7
@@ -157,7 +157,7 @@ const PRESETS = {
       { f0: 440.0, dur: 0.08, gap: 0.07, vol: 0.5, decay: 6 }, // A4 短脉冲
       { f0: 440.0, dur: 0.14, vol: 0.5, decay: 5 },
     ]),
-    // 权限请求 / 闲置提醒：更高更短的上行双 ping（C7 → E7）
+    // 权限请求（等待批准）：更高更短的上行双 ping（C7 → E7）
     notify: render([
       { f0: 2093.0, dur: 0.09, gap: 0.05, vol: 0.5, decay: 8 }, // C7
       { f0: 2637.0, dur: 0.22, vol: 0.52, decay: 7 }, // E7
@@ -181,7 +181,7 @@ const PRESETS = {
       { f0: 261.63, dur: 0.07, gap: 0.05, vol: 0.5, wave: 'square', decay: 4 },
       { f0: 261.63, dur: 0.1, vol: 0.5, wave: 'square', decay: 4 },
     ]),
-    // 权限请求 / 闲置提醒：方波双 beep 上行（A5 → D6）
+    // 权限请求（等待批准）：方波双 beep 上行（A5 → D6）
     notify: render([
       { f0: 880.0, dur: 0.07, gap: 0.05, vol: 0.45, wave: 'square', decay: 5 }, // A5
       { f0: 1174.66, dur: 0.16, vol: 0.45, wave: 'square', decay: 5 }, // D6

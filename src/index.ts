@@ -35,7 +35,7 @@ import { dirname, extname, isAbsolute, join, resolve } from 'path';
 // 一、类型与常量
 // ============================================================================
 
-/** 音效状态：任务结束三类 + 权限请求 / 闲置提醒（普通模式挂机提示） */
+/** 音效状态：任务结束三类 + 权限请求（等待批准）提示 */
 type SoundStatus = 'success' | 'fail' | 'abort' | 'notify';
 
 /** 内置预设音效包 */
@@ -59,9 +59,9 @@ interface ToasterConfig {
   abortSound: string;
   /** 中断音效音量 0-100 */
   abortVolume: number;
-  /** 权限请求 / 闲置提醒音效文件路径（空字符串 = 使用内置预设） */
+  /** 权限请求（等待批准）音效文件路径（空字符串 = 使用内置预设） */
   notifySound: string;
-  /** 权限请求 / 闲置提醒音效音量 0-100 */
+  /** 权限请求音效音量 0-100 */
   notifyVolume: number;
   /** 音效最大播放时长（秒），防止音频过长 */
   maxDuration: number;
@@ -80,7 +80,7 @@ interface HookInput {
   stop_hook_active?: boolean;
   /** PostToolUseFailure 事件：失败是否由用户中断造成 */
   is_interrupt?: boolean;
-  /** Notification 事件：通知类型（如 permission_prompt / idle_prompt）。字段名未经官方文档确认，仅作 matcher 之外的兜底 */
+  /** Notification 事件：通知类型（如 permission_prompt）。字段名未经官方文档确认，仅作 matcher 之外的兜底 */
   notification_type?: string;
   /** StopFailure 事件：API 错误类型 */
   error?: string;
@@ -705,8 +705,9 @@ function transcriptEndedWithError(transcriptPath: string | undefined): boolean {
  *   - StopFailure       turn 因 API 错误（限流 / 鉴权 / 计费 / 服务端等）结束
  *   - PostToolUseFailure 工具调用失败；input.is_interrupt=true 表示由用户中断造成
  *   - Notification      Claude Code 发出通知时触发（hooks.json 用 matcher 过滤并作为 detail 传入）：
- *                       permission_prompt = 权限请求；idle_prompt = 闲置 60s+ 等待输入。
- *                       仅这两类触发 notify 音；auth_success / elicitation_dialog 等不发声。
+ *                       permission_prompt = 权限请求（Claude 被卡住等待批准）。
+ *                       仅此类触发 notify 音；idle_prompt（闲置 60s）在正常阅读回复时也会误触、
+ *                       体验如同催促，故不播放；auth_success / elicitation_dialog 等同样不发声。
  *
  * @param detail hooks.json 传入的 matcher 值（Notification 事件用于识别通知类型）
  * @returns 音效状态；null 表示该事件不应发声
@@ -727,7 +728,7 @@ function mapHookEvent(event: string, input: HookInput, detail?: string): SoundSt
       // detail 来自 hooks.json 的 matcher（官方机制）；stdin 的 notification_type 字段
       // 未经官方文档确认，仅作兜底。两者都识别不出时保持静默，避免 auth_success 等误响。
       const type = detail || input.notification_type || '';
-      return type === 'permission_prompt' || type === 'idle_prompt' ? 'notify' : null;
+      return type === 'permission_prompt' ? 'notify' : null;
     }
     default:
       return null;
@@ -791,7 +792,7 @@ async function runHook(eventArg: string | undefined, detailArg?: string): Promis
     }
 
     // bypassOnly：非自动批准模式静默；事件未携带 permission_mode 时 fail-open。
-    // notify（权限请求 / 闲置提醒）只出现在需要用户介入的普通模式，不受该开关限制。
+    // notify（权限请求）只出现在需要用户介入的普通模式，不受该开关限制。
     if (status !== 'notify' && cfg.bypassOnly && input.permission_mode !== undefined && !isAutoApproveMode(input.permission_mode)) {
       dbg(`skipped: permission_mode=${input.permission_mode} is not an auto-approve mode`);
       return;
@@ -838,7 +839,7 @@ const HELP_TEXT = `ClaudeCodeToaster - 任务完成 / 权限请求音效提醒
   node index.js sound status                      查看当前生效配置
   node index.js sound help                        显示本帮助
 
-状态取值：success | fail | abort | notify（notify = 普通模式权限请求 / 闲置提醒）
+状态取值：success | fail | abort | notify（notify = 权限请求提醒）
 配置级别：默认写入用户级（~/.claude/claudecode-toaster/config.json），
           加 --project 写入项目级（<项目>/.claude/claudecode-toaster.json）。`;
 
