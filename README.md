@@ -44,30 +44,14 @@ Claude Code 官方**没有** `task:complete` / `task:error` / `task:abort` 这�
 
 ---
 
-## 二、目录结构
+## 二、项目结构
 
-```
-ClaudeCodeToaster/
-├── .claude-plugin/
-│   ├── plugin.json          # 插件清单（名称 / 版本 / 组件声明）
-│   └── marketplace.json     # 本地 marketplace 清单（本仓库即插件源，供本地 / 团队安装）
-├── hooks/
-│   └── hooks.json           # 生命周期钩子注册（Stop / StopFailure / PostToolUseFailure / Notification）
-├── commands/
-│   └── sound.md             # 斜杠命令 /claudecode-toaster:sound
-├── src/
-│   ├── index.ts             # 全部核心逻辑：配置 / 钩子 / 播放 / CLI
-│   └── sounds/README.md     # 默认音效说明与生成方式
-├── scripts/
-│   └── generate-sounds.mjs  # 零依赖合成内置音效（simple/success 为真实录音，只复制）
-├── assets/sounds/           # 内置音效"源文件"（simple / crisp / tech × 3 状态）
-├── dist/                    # 构建产物（index.js + 音效副本；随仓库提交，安装即可用）
-├── package.json
-├── tsconfig.json
-├── README.md
-├── CHANGELOG.md             # 更新日志（每次改动随版本记录）
-└── release/                 # 发布压缩包（本地打包产物，已 gitignore）
-```
+![ClaudeCodeToaster 项目结构](diagrams/toaster-architecture.png)
+
+> 运行时结构：Claude Code 触发 `hooks.json` 声明的生命周期钩子 → `dist/index.js` 判定事件、
+> 读取两级配置（user > project）并解析内置音效（3 预设 × 4 状态）→ 平台原生播放器发声，
+> 失败降级终端蜂鸣；`/sound` 命令共享同一核心，合成脚本在构建期生成音效。
+> 完整目录树见仓库实际文件；`dist/` 随仓库提交，安装即可用。
 
 ---
 

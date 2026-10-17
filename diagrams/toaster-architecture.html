@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClaudeCodeToaster 项目结构</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #bf4520;
+      --font-sans:     'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif SC', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">ARCHITECTURE · DIAGRAM DESIGN</p>
+    <h1>ClaudeCodeToaster · 项目结构</h1>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="toaster-arch-title toaster-arch-desc">
+        <title id="toaster-arch-title">ClaudeCodeToaster 项目结构</title>
+        <desc id="toaster-arch-desc">Claude Code 宿主通过 hooks.json 声明的四个生命周期钩子调用 dist/index.js 核心，核心读取两级配置并解析内置音效后交平台原生播放器发声，失败降级为终端蜂鸣；/sound 命令共享同一核心，合成脚本在构建期生成内置音效。</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bf4520"/></marker>
+          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+        </defs>
+
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+        <!-- ==================== 分区（最先画，垫底） ==================== -->
+        <rect x="40" y="40" width="216" height="408" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <rect x="56" y="44" width="48" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="80" y="53" fill="#5a6580" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">HOST</text>
+
+        <rect x="304" y="40" width="432" height="408" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <rect x="320" y="44" width="56" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="348" y="53" fill="#5a6580" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">PLUGIN</text>
+
+        <rect x="776" y="40" width="152" height="408" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <rect x="792" y="44" width="52" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="818" y="53" fill="#5a6580" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">AUDIO</text>
+
+        <!-- ==================== 连接线与标签（先于节点） ==================== -->
+        <!-- hooks.json → Claude Code：静态声明（虚线） -->
+        <path d="M 148,184 V 160" fill="none" stroke="#4f5d75" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <rect x="158" y="166" width="56" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="186" y="175" fill="#5a6580" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">DECLARES</text>
+
+        <!-- Claude Code → 核心：触发钩子（主路径） -->
+        <path d="M 208,120 H 384" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="272" y="100" width="48" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="296" y="109" fill="#5a6580" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">HOOKS</text>
+
+        <!-- /sound CLI → 核心：无标签（来源自明） -->
+        <path d="M 208,328 H 496 Q 504,328 504,320 V 176" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- 核心 → 两级配置 -->
+        <path d="M 420,176 V 224" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="428" y="192" width="56" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="456" y="201" fill="#5a6580" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">LOAD CFG</text>
+
+        <!-- 核心 → 内置音效 -->
+        <path d="M 588,176 V 224" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="596" y="192" width="56" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="624" y="201" fill="#5a6580" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">RESOLVE</text>
+
+        <!-- 合成脚本 → 内置音效：构建期（虚线） -->
+        <path d="M 588,336 V 304" fill="none" stroke="#4f5d75" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <rect x="598" y="312" width="76" height="16" rx="2" fill="#f5f5f5"/>
+        <text x="636" y="324" fill="#5a6580" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif" text-anchor="middle">构建期生成</text>
+
+        <!-- 核心 → 平台播放器 -->
+        <path d="M 624,120 H 788" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="682" y="100" width="48" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="706" y="109" fill="#5a6580" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PLAY</text>
+
+        <!-- 播放器 → 蜂鸣兜底：降级（虚线） -->
+        <path d="M 852,208 V 336" fill="none" stroke="#4f5d75" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <rect x="862" y="262" width="56" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="890" y="271" fill="#5a6580" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">FALLBACK</text>
+
+        <!-- ==================== 节点 ==================== -->
+        <!-- 1. Claude Code 宿主（external） -->
+        <rect x="88" y="80" width="120" height="80" rx="6" fill="#f5f5f5" stroke="#4f5d75" stroke-width="1"/>
+        <rect x="96" y="86" width="32" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
+        <text x="112" y="95" fill="rgba(45,49,66,0.55)" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">HOST</text>
+        <text x="148" y="124" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif" text-anchor="middle">Claude Code</text>
+        <text x="148" y="142" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">lifecycle hooks</text>
+
+        <!-- 2. hooks.json（input） -->
+        <rect x="88" y="184" width="120" height="80" rx="6" fill="rgba(79,93,117,0.10)" stroke="#5a6580" stroke-width="1"/>
+        <rect x="96" y="190" width="40" height="12" rx="2" fill="transparent" stroke="rgba(90,101,128,0.40)" stroke-width="0.8"/>
+        <text x="116" y="199" fill="rgba(90,101,128,0.80)" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">CONFIG</text>
+        <text x="148" y="228" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif" text-anchor="middle">hooks.json</text>
+        <text x="148" y="246" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">4 events · async</text>
+
+        <!-- 3. /sound 命令（input） -->
+        <rect x="88" y="288" width="120" height="80" rx="6" fill="rgba(79,93,117,0.10)" stroke="#5a6580" stroke-width="1"/>
+        <rect x="96" y="294" width="28" height="12" rx="2" fill="transparent" stroke="rgba(90,101,128,0.40)" stroke-width="0.8"/>
+        <text x="110" y="303" fill="rgba(90,101,128,0.80)" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">CLI</text>
+        <text x="148" y="332" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif" text-anchor="middle">/sound 命令</text>
+        <text x="148" y="350" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">test·set·preset</text>
+
+        <!-- 4. dist/index.js 核心（focal，唯一珊瑚色） -->
+        <rect x="384" y="80" width="240" height="96" rx="6" fill="rgba(191,69,32,0.08)" stroke="#bf4520" stroke-width="1.2"/>
+        <rect x="392" y="86" width="32" height="12" rx="2" fill="transparent" stroke="rgba(191,69,32,0.40)" stroke-width="0.8"/>
+        <text x="408" y="95" fill="rgba(191,69,32,0.80)" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">CORE</text>
+        <text x="504" y="130" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif" text-anchor="middle">dist/index.js</text>
+        <text x="504" y="150" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">event → status · debounce</text>
+        <text x="504" y="164" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">volume / duration guard</text>
+
+        <!-- 5. 两级配置（store） -->
+        <rect x="360" y="224" width="120" height="80" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+        <rect x="368" y="230" width="36" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.40)" stroke-width="0.8"/>
+        <text x="386" y="239" fill="rgba(79,93,117,0.80)" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">STORE</text>
+        <text x="420" y="268" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif" text-anchor="middle">两级配置</text>
+        <text x="420" y="286" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">user > project</text>
+
+        <!-- 6. 内置音效（store） -->
+        <rect x="528" y="224" width="120" height="80" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+        <rect x="536" y="230" width="36" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.40)" stroke-width="0.8"/>
+        <text x="554" y="239" fill="rgba(79,93,117,0.80)" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">ASSET</text>
+        <text x="588" y="268" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif" text-anchor="middle">内置音效</text>
+        <text x="588" y="286" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">3 preset × 4</text>
+
+        <!-- 7. 合成脚本（optional，构建期） -->
+        <rect x="528" y="336" width="120" height="80" rx="6" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+        <rect x="536" y="342" width="36" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.20)" stroke-width="0.8"/>
+        <text x="554" y="351" fill="rgba(45,49,66,0.55)" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">BUILD</text>
+        <text x="588" y="380" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif" text-anchor="middle">合成脚本</text>
+        <text x="588" y="398" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">gen-sounds.mjs</text>
+
+        <!-- 8. 平台原生播放（backend） -->
+        <rect x="788" y="80" width="128" height="128" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="796" y="86" width="44" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+        <text x="818" y="95" fill="rgba(45,49,66,0.80)" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">BACKEND</text>
+        <text x="852" y="120" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif" text-anchor="middle">平台原生播放</text>
+        <text x="852" y="140" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">win: SoundPlayer</text>
+        <text x="852" y="154" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">mac: afplay</text>
+        <text x="852" y="168" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">linux: ffplay</text>
+        <text x="852" y="192" fill="#5a6580" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif" text-anchor="middle">零依赖 · 系统自带</text>
+
+        <!-- 9. 终端蜂鸣兜底（optional） -->
+        <rect x="788" y="336" width="128" height="80" rx="6" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+        <rect x="796" y="342" width="52" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.20)" stroke-width="0.8"/>
+        <text x="822" y="351" fill="rgba(45,49,66,0.55)" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">FALLBACK</text>
+        <text x="852" y="380" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif" text-anchor="middle">终端蜂鸣兜底</text>
+        <text x="852" y="398" fill="#4f5d75" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">BEL · Beep</text>
+
+        <!-- ==================== 图例（底部横条） ==================== -->
+        <line x1="40" y1="468" x2="920" y2="468" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="40" y="490" fill="#4f5d75" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.14em">LEGEND</text>
+
+        <line x1="120" y1="486" x2="148" y2="486" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="156" y="490" fill="#5a6580" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif">运行时调用</text>
+
+        <line x1="256" y1="486" x2="284" y2="486" stroke="#4f5d75" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="292" y="490" fill="#5a6580" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif">构建期 · 静态 · 降级</text>
+
+        <rect x="452" y="478" width="18" height="14" rx="3" fill="rgba(191,69,32,0.08)" stroke="#bf4520" stroke-width="1"/>
+        <text x="478" y="490" fill="#5a6580" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif">核心焦点</text>
+
+        <rect x="568" y="478" width="18" height="14" rx="3" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+        <text x="594" y="490" fill="#5a6580" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif">配置 / 资产</text>
+
+        <rect x="700" y="478" width="18" height="14" rx="3" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="726" y="490" fill="#5a6580" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif">系统层</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>
