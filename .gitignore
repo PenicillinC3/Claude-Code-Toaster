@@ -15,3 +15,11 @@ toaster_sound/
 
 # 用户本地测试配置
 .claude/
+
+# 视频项目与渲染产物：本地保留，不随仓库提交
+brag-output/
+brag-output-*/
+font/
+*.mp4
+*.webm
+*.mov
