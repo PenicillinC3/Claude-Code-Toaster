@@ -1,8 +1,8 @@
 # ClaudeCodeToaster 🍞🔔
 
-Claude Code 终端插件：**任务完成 / 权限请求音效提醒**。
+Claude Code 插件：**任务完成 / 权限请求 / 提问音效提醒**。
 任务结束（成功 / 失败 / 中断）时自动播放对应提示音；
-Claude 请求权限（被卡住等待批准）时会响一声——挂机也不怕错过。
+Claude 请求权限（被卡住等待批准）或向你提问（`AskUserQuestion` 等待选择）时会响一声——挂机也不怕错过。
 四类音效、音量、预设包全部可自定义，默认所有权限模式生效。
 
 - 零运行时依赖：只用 Node.js 原生模块 + 系统自带播放器，**不安装任何第三方音频库**
@@ -23,14 +23,14 @@ Claude Code 官方**没有** `task:complete` / `task:error` / `task:abort` 这�
 | **成功 success** | `Stop` | 主代理完成响应时触发；同时分析会话记录（transcript），若本轮最后一个工具结果是错误则改判 fail |
 | **失败 fail** | `StopFailure` + `Stop` 的记录分析 | API 错误（限流 / 鉴权 / 计费 / 服务端，`StopFailure`）；工具执行失败后任务收尾（`Stop` + transcript 中最后一个 `tool_result.is_error === true`） |
 | **中断 abort** | `PostToolUseFailure` | 仅当输入 `is_interrupt === true`（用户在工具执行期间按 Esc / Ctrl+C 终止）时播放；普通工具失败不响，避免每步打扰 |
-| **提醒 notify** | `Notification` | matcher = `permission_prompt`（Claude 请求权限、被卡住等待批准）；其余通知类型（`idle_prompt` / `auth_success` / `elicitation_dialog` 等）不发声 |
+| **提醒 notify** | `Notification` + `PreToolUse` | 权限请求：`Notification` matcher = `permission_prompt`（Claude 被卡住等待批准）；提问：`PreToolUse` matcher = `AskUserQuestion`（Claude 用提问工具等待你选择）；其余通知类型（`idle_prompt` / `auth_success` / `elicitation_dialog` 等）与其他工具不发声 |
 
 其他关键行为：
 
 - **默认所有权限模式都提醒**：任务结束音效（success / fail / abort）在 `default` / `plan` /
   `acceptEdits` / `auto` / `bypassPermissions`（`--dangerously-skip-permissions`）/ `dontAsk` 下均播放。
   用 `/sound bypass-only` 可开启「仅自动批准模式提醒」——开启后只有 `bypassPermissions` / `dontAsk` 播放。
-  **notify（权限请求）不受该开关限制**——它正是为普通模式设计的，只要总开关开着就会响。
+  **notify（权限请求 / 提问）不受该开关限制**——它们正是为普通模式设计的，只要总开关开着就会响。
 - **一个任务只响一次**：`Stop` 是"每轮任务结束"事件（一轮 = 你发一次指令到 Claude 交还控制权），
   不会在每个工具调用后响；另有 **3 秒防抖**（同一 session + 状态 3 秒内只放一次）兜底。
 - 所有钩子均配置为 `"async": true`，Claude 不等音效播完即可继续。
@@ -41,6 +41,20 @@ Claude Code 官方**没有** `task:complete` / `task:error` / `task:abort` 这�
 - Claude 在**纯文本生成阶段**被 Esc 中断时，官方不提供任何钩子（`Stop` 文档明确"用户中断时不触发"）。
   abort 音效覆盖的是**工具执行期间**的中断（长命令、测试、构建跑到一半被终止，这也是 bypass 模式下最常见的中断场景）。
 - `StopFailure` 的钩子输入不带 `permission_mode`，此时按"宁报不漏"处理（fail-open），失败音一定会响。
+
+### Claude Code Desktop（Windows）兼容性
+
+桌面端自己也会为任务结束 / 权限请求 / 提问弹出系统横幅并播放 **Windows 原生通知音**。
+它与插件音效在同一时刻触发时会互相打断，表现为**两个声音都不响**。
+使用桌面端时请关掉原生通知音，让提示音统一由本插件播放：
+
+1. 打开 Claude Desktop → **Settings → Claude Code → Notification sound → None**
+   （中文界面：设置 → Claude Code → 通知声音 → 无）
+2. 在会话里执行 `/sound status`，应看到「桌面端通知音：已关闭（None）」；
+   若显示「系统音（System）」，说明原生通知音还开着，按上一步关掉即可。
+
+关闭后桌面端的通知横幅照常出现，只是不再发声；success / fail / abort / notify
+四类提示音全部由本插件播放（notify 覆盖权限请求与 `AskUserQuestion` 提问）。
 
 ---
 
@@ -57,6 +71,15 @@ Claude Code 官方**没有** `task:complete` / `task:error` / `task:abort` 这�
 
 ## 三、安装与本地加载
 
+### 从 GitHub 安装（推荐）
+
+```bash
+claude plugin marketplace add https://github.com/PenicillinC3/Claude-Code-Toaster
+claude plugin install claudecode-toaster@claudecode-toaster
+```
+
+安装后启动新的 Claude Code 会话即可生效；默认 user 级，可追加 `--scope project/local`。
+
 ### 1. 前置条件
 
 - [Claude Code](https://code.claude.com/) 较新版本（支持插件与 `StopFailure` / `PostToolUseFailure` 钩子）
@@ -71,7 +94,7 @@ node --version   # 应 >= v18
 ```powershell
 # Windows PowerShell
 cd D:\
-git clone <your-repo-url> ClaudeCodeToaster   # 或直接使用 D:\_claude-code-toaster
+git clone https://github.com/PenicillinC3/Claude-Code-Toaster ClaudeCodeToaster   # 或直接使用 D:\_claude-code-toaster
 cd ClaudeCodeToaster
 npm install          # 仅安装 TypeScript（devDependency），运行时零依赖
 npm run build        # tsc 编译 + 生成内置音效（11 个合成 + 1 个真实录音复制）
@@ -119,14 +142,14 @@ claude --dangerously-skip-permissions --plugin-dir /path/to/ClaudeCodeToaster
 
 - 个人长期使用：可把启动命令存成 shell 别名，例如
   PowerShell `function cc-t { claude --dangerously-skip-permissions --plugin-dir D:\_claude-code-toaster @args }`。
-- 本仓库自带 `.claude-plugin/marketplace.json`，可直接作为本地 marketplace 安装（比 `--plugin-dir` 更适合长期使用）：
+- 长期使用建议从 GitHub 安装（比 `--plugin-dir` 更适合长期使用，也方便更新）：
 
   ```bash
-  claude plugin marketplace add D:\_claude-code-toaster
+  claude plugin marketplace add https://github.com/PenicillinC3/Claude-Code-Toaster
   claude plugin install claudecode-toaster@claudecode-toaster   # 默认 user 级，可加 --scope project/local
   ```
 
-- 团队分发：把本仓库推到 git，其他人 `claude plugin marketplace add <repo-url>` 后同样安装，支持 `--scope user/project/local`。
+- 团队分发：其他人执行同样两条命令即可，支持 `--scope user/project/local`。
   注意：Claude Code 安装插件时**不会**执行 `npm install` / `npm run build`，因此 `dist/` 构建产物必须随仓库提交
   （`.gitignore` 已放行 `dist/`）；改动 `src/` 后请运行 `npm run build` 并提交新的 `dist/`。
   本地开发仍可用 `claude --plugin-dir` 加载，改动后 `/reload-plugins` 热更新。
@@ -179,8 +202,8 @@ node dist/index.js sound status
 | `failVolume` | `85` | 失败音效音量 0-100 |
 | `abortSound` | 内置预设 | 中断音效文件路径 |
 | `abortVolume` | `70` | 中断音效音量 0-100 |
-| `notifySound` | 内置预设 | 权限请求音效文件路径 |
-| `notifyVolume` | `80` | 权限请求音效音量 0-100 |
+| `notifySound` | 内置预设 | 权限请求 / 提问音效文件路径 |
+| `notifyVolume` | `80` | 权限请求 / 提问音效音量 0-100 |
 | `maxDuration` | `4` | 音效最大播放时长（秒，1-30），防止音频过长 |
 | `preset` | `simple` | 内置预设包：`simple` / `crisp` / `tech` |
 
@@ -222,7 +245,7 @@ node dist/index.js sound status
 <https://www.youtube.com/watch?v=IoN9UsFh9-I>，作者声明注明出处即可免费使用；
 由 `toaster_sound/Toaster Oven Bell Ding.mp3` 裁切而来：去 1.5s 机械前导、保留完整尾音（~3.5s）、峰值归一）。
 `crisp` / `tech` 的 success 为同一烤面包机主题的合成版；
-`notify`（权限请求）三套预设均为上行双音（提问感），与任务结束三类音效区分：
+`notify`（权限请求 / 提问）三套预设均为上行双音（提问感），与任务结束三类音效区分：
 
 | 预设 | success | fail | abort | notify |
 |---|---|---|---|---|
@@ -263,10 +286,10 @@ node dist/index.js sound status
 ```powershell
 cd D:\_claude-code-toaster
 npm install
-npm run build           # tsc 无报错 + 输出 18 个 WAV（assets/ 与 dist/ 各 9 个）
+npm run build           # tsc 无报错 + 输出 24 个 WAV（assets/ 与 dist/ 各 12 个）
 claude plugin validate .   # 应显示 "Validation passed"
-node dist\index.js sound test     # 依次听到 success / fail / abort 三个音
-node dist\index.js sound status   # 三个文件均显示 OK
+node dist\index.js sound test     # 依次听到 success / fail / abort / notify 四个音
+node dist\index.js sound status   # 四个文件均显示 OK
 ```
 
 ### B. 不进会话，直接用管道模拟钩子（最快验证，支持排障日志）
@@ -287,6 +310,18 @@ $env:TOASTER_DEBUG='1'   # 打开判定日志（输出到 stderr，排障后删�
 # 中断：工具被用户中断 → 应播放 abort
 [pscustomobject]@{ hook_event_name='PostToolUseFailure'; permission_mode='bypassPermissions'; session_id='t3'; cwd='D:\_claude-code-toaster'; is_interrupt=$true } |
   ConvertTo-Json -Compress | node dist\index.js hook PostToolUseFailure
+
+# 权限请求：Notification permission_prompt → 应播放 notify
+[pscustomobject]@{ hook_event_name='Notification'; session_id='t5'; cwd='D:\_claude-code-toaster'; notification_type='permission_prompt' } |
+  ConvertTo-Json -Compress | node dist\index.js hook Notification permission_prompt
+
+# 提问：AskUserQuestion 执行前 → 应播放 notify
+[pscustomobject]@{ hook_event_name='PreToolUse'; session_id='t6'; cwd='D:\_claude-code-toaster'; tool_name='AskUserQuestion' } |
+  ConvertTo-Json -Compress | node dist\index.js hook PreToolUse AskUserQuestion
+
+# 对照：其他工具的 PreToolUse → 应静默
+[pscustomobject]@{ hook_event_name='PreToolUse'; session_id='t7'; cwd='D:\_claude-code-toaster'; tool_name='Bash' } |
+  ConvertTo-Json -Compress | node dist\index.js hook PreToolUse Bash
 
 # 对照：default 权限模式 + 开启 bypass-only 后 → 应静默，日志显示 skipped
 [pscustomobject]@{ hook_event_name='Stop'; permission_mode='default'; session_id='t4'; cwd='D:\_claude-code-toaster' } |

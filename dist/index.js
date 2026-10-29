@@ -617,8 +617,10 @@ function transcriptEndedWithError(transcriptPath) {
  *                       permission_prompt = 权限请求（Claude 被卡住等待批准）。
  *                       仅此类触发 notify 音；idle_prompt（闲置 60s）在正常阅读回复时也会误触、
  *                       体验如同催促，故不播放；auth_success / elicitation_dialog 等同样不发声。
+ *   - PreToolUse        AskUserQuestion（Claude 向用户提问、等待选择）执行前触发，同样播放 notify；
+ *                       其他工具的 PreToolUse 不发声。
  *
- * @param detail hooks.json 传入的 matcher 值（Notification 事件用于识别通知类型）
+ * @param detail hooks.json 传入的 matcher 值（Notification 用于识别通知类型，PreToolUse 用于识别工具名）
  * @returns 音效状态；null 表示该事件不应发声
  */
 function mapHookEvent(event, input, detail) {
@@ -639,6 +641,11 @@ function mapHookEvent(event, input, detail) {
             // 未经官方文档确认，仅作兜底。两者都识别不出时保持静默，避免 auth_success 等误响。
             const type = detail || input.notification_type || '';
             return type === 'permission_prompt' ? 'notify' : null;
+        }
+        case 'PreToolUse': {
+            // Claude 用 AskUserQuestion 向用户提问（等待选择）时提醒，避免挂机错过；
+            // detail 来自 hooks.json 的 matcher，stdin 的 tool_name 作兜底。
+            return (detail || input.tool_name) === 'AskUserQuestion' ? 'notify' : null;
         }
         default:
             return null;
@@ -700,7 +707,7 @@ async function runHook(eventArg, detailArg) {
             return;
         }
         // bypassOnly：非自动批准模式静默；事件未携带 permission_mode 时 fail-open。
-        // notify（权限请求）只出现在需要用户介入的普通模式，不受该开关限制。
+        // notify（权限请求 / 提问）只出现在需要用户介入的普通模式，不受该开关限制。
         if (status !== 'notify' && cfg.bypassOnly && input.permission_mode !== undefined && !isAutoApproveMode(input.permission_mode)) {
             dbg(`skipped: permission_mode=${input.permission_mode} is not an auto-approve mode`);
             return;
@@ -725,7 +732,7 @@ async function runHook(eventArg, detailArg) {
 // ============================================================================
 // 六、斜杠命令 CLI（/claudecode-toaster:sound ...）
 // ============================================================================
-const HELP_TEXT = `ClaudeCodeToaster - 任务完成 / 权限请求音效提醒
+const HELP_TEXT = `ClaudeCodeToaster - 任务完成 / 权限请求 / 提问音效提醒
 
 用法：
   node index.js sound test [success|fail|abort|notify]
@@ -745,7 +752,7 @@ const HELP_TEXT = `ClaudeCodeToaster - 任务完成 / 权限请求音效提醒
   node index.js sound status                      查看当前生效配置
   node index.js sound help                        显示本帮助
 
-状态取值：success | fail | abort | notify（notify = 权限请求提醒）
+状态取值：success | fail | abort | notify（notify = 权限请求 / 提问提醒）
 配置级别：默认写入用户级（~/.claude/claudecode-toaster/config.json），
           加 --project 写入项目级（<项目>/.claude/claudecode-toaster.json）。`;
 function cliPrint(msg) {
@@ -753,6 +760,38 @@ function cliPrint(msg) {
 }
 function isStatus(s) {
     return STATUSES.includes(s);
+}
+/**
+ * 读取 Claude Code Desktop（Windows）的原生通知音设置。
+ *
+ * 桌面端自己也会为任务结束 / 权限请求 / 提问弹横幅并播放 Windows 原生通知音；
+ * 它与本插件音效同时触发时会互相打断，表现为「两个声音都不响」。
+ * 建议把桌面端 Notification sound 设为 None，提示音统一由本插件播放。
+ * 读取失败（未安装桌面端 / 非 Windows）返回 undefined。
+ */
+function desktopNativeNotificationSound() {
+    if ((0, os_1.platform)() !== 'win32')
+        return undefined;
+    const local = process.env.LOCALAPPDATA;
+    const roaming = process.env.APPDATA;
+    const candidates = [
+        local ? (0, path_1.join)(local, 'Claude-3p', 'claude_desktop_config.json') : '',
+        local ? (0, path_1.join)(local, 'Claude', 'claude_desktop_config.json') : '',
+        roaming ? (0, path_1.join)(roaming, 'Claude', 'claude_desktop_config.json') : '',
+    ].filter((file) => file.length > 0);
+    for (const file of candidates) {
+        try {
+            const data = JSON.parse((0, fs_1.readFileSync)(file, 'utf8'));
+            const prefs = data.preferences;
+            if (!prefs || typeof prefs !== 'object')
+                continue;
+            return prefs.notificationSound === 'none' ? 'none' : 'system';
+        }
+        catch {
+            /* 文件不存在 / 非桌面端配置 → 尝试下一个 */
+        }
+    }
+    return undefined;
 }
 /** 打印当前配置（sound status） */
 function cmdStatus(cwd) {
@@ -774,6 +813,14 @@ function cmdStatus(cwd) {
             `  实际播放: ${resolved} ${valid ? 'OK' : '【缺失/损坏，将蜂鸣兜底】'}`);
     }
     lines.push('----------------------------------------');
+    const desktopSound = desktopNativeNotificationSound();
+    if (desktopSound === 'none') {
+        lines.push('桌面端通知音 : 已关闭（None），提示音只由本插件播放');
+    }
+    else if (desktopSound === 'system') {
+        lines.push('桌面端通知音 : 系统音（System），会与插件音效冲突导致两者都不响');
+        lines.push('  修复: Claude Desktop → 设置 → Claude Code → Notification sound → None');
+    }
     lines.push(`平台 : ${(0, os_1.platform)()}    用户级配置 : ${USER_CONFIG_FILE}`);
     lines.push(`项目级配置 : ${projectConfigFile(cwd)}`);
     cliPrint(lines.join('\n'));

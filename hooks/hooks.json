@@ -1,5 +1,5 @@
 {
-  "description": "ClaudeCodeToaster lifecycle sound hooks: play success / fail / abort sounds when a task turn ends, and a notify sound on permission prompts (Claude blocked waiting for approval).",
+  "description": "ClaudeCodeToaster lifecycle sound hooks: play success / fail / abort sounds when a task turn ends, and a notify sound on permission prompts (Claude blocked waiting for approval) and when Claude asks the user a question (AskUserQuestion).",
   "hooks": {
     "Stop": [
       {
@@ -31,6 +31,19 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/index.js\" hook PostToolUseFailure",
+            "async": true,
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/index.js\" hook PreToolUse AskUserQuestion",
             "async": true,
             "timeout": 20
           }
