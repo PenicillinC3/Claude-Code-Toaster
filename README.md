@@ -399,3 +399,14 @@ echo '{"hook_event_name":"Stop","permission_mode":"bypassPermissions","session_i
 ## 十、许可证
 
 MIT，见 [LICENSE](LICENSE)。内置音效中，`simple` 的 success 为外部录音素材（来源与授权说明见「内置预设包」一节，使用/分发时请保留出处署名），其余由脚本合成，可任意使用与修改。
+
+---
+
+## 十一、作者
+
+**PenicillinC3** — <2131873223@qq.com>
+
+- GitHub：<https://github.com/PenicillinC3>
+- 仓库：<https://github.com/PenicillinC3/Claude-Code-Toaster>
+
+Issue、功能建议与 PR 都欢迎。

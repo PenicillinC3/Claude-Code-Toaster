@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 /*
- * ClaudeCodeToaster <https://github.com/claudecode-toaster>
+ * ClaudeCodeToaster <https://github.com/PenicillinC3/Claude-Code-Toaster>
  *
- * bypass permissions 自动执行模式专属的任务完成音效提醒插件。
+ * 作者：PenicillinC3 <2131873223@qq.com>
+ *
+ * Claude Code 音效提醒插件：任务成功 / 失败 / 中断、权限请求、提问（AskUserQuestion）
+ * 时播放提示音，所有权限模式均可提醒。
  *
  * 运行模式：
  *   1. hook 模式（由 hooks/hooks.json 调用）：
@@ -850,7 +853,10 @@ const HELP_TEXT = `ClaudeCodeToaster - 任务完成 / 权限请求 / 提问音�
 
 状态取值：success | fail | abort | notify（notify = 权限请求 / 提问提醒）
 配置级别：默认写入用户级（~/.claude/claudecode-toaster/config.json），
-          加 --project 写入项目级（<项目>/.claude/claudecode-toaster.json）。`;
+          加 --project 写入项目级（<项目>/.claude/claudecode-toaster.json）。
+
+作者：PenicillinC3 <2131873223@qq.com>
+      https://github.com/PenicillinC3/Claude-Code-Toaster`;
 
 function cliPrint(msg: string): void {
   process.stdout.write(`${msg}\n`);

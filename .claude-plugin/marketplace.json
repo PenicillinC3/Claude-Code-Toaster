@@ -2,7 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "claudecode-toaster",
   "owner": {
-    "name": "ClaudeCodeToaster"
+    "name": "PenicillinC3",
+    "email": "2131873223@qq.com"
   },
   "description": "ClaudeCodeToaster 本地开发 marketplace（单插件仓库，插件即仓库根目录）。",
   "plugins": [

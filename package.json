@@ -1,6 +1,6 @@
 {
   "name": "claudecode-toaster",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Claude Code plugin: customizable sound alerts for task success / failure / abort, plus permission prompts and user questions. Works in all permission modes. Zero runtime dependencies.",
   "main": "dist/index.js",
   "scripts": {
@@ -21,6 +21,16 @@
     "hooks"
   ],
   "license": "MIT",
+  "author": {
+    "name": "PenicillinC3",
+    "email": "2131873223@qq.com",
+    "url": "https://github.com/PenicillinC3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PenicillinC3/Claude-Code-Toaster.git"
+  },
+  "homepage": "https://github.com/PenicillinC3/Claude-Code-Toaster#readme",
   "devDependencies": {
     "@types/node": "^20.19.43",
     "typescript": "^5.6.3"
